@@ -33,10 +33,10 @@ variable "vsphere_cluster" {
   type        = string
   default     = ""
 
-  validation {
-    condition     = var.vsphere_cluster != ""
-    error_message = "You must specify the destination cluster."
-  }
+  # validation {
+  #   condition     = var.vsphere_cluster != ""
+  #   error_message = "You must specify the destination cluster."
+  # }
 }
 variable "vsphere_datastore" {
   description = "What is the name of the destination VM datastore"
@@ -334,6 +334,7 @@ variable "talos_token" {
   description = "Token used to join a system to the cluster"
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.talos_token != ""
@@ -344,6 +345,7 @@ variable "kube_enc_key" {
   description = "The key used for the encryption of secret data at rest"
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.kube_enc_key != ""
@@ -354,6 +356,7 @@ variable "kube_token" {
   description = "The [bootstrap token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) used to join the cluster."
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.kube_token != ""
@@ -374,6 +377,7 @@ variable "kube_key" {
   description = "The base64 encoded root certificate authority key used by Kubernetes."
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.kube_key != ""
@@ -394,6 +398,7 @@ variable "etcd_key" {
   description = "The `ca` is the root certificate authority of the PKI."
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.etcd_key != ""
@@ -420,6 +425,40 @@ variable "admin_key" {
     error_message = "Admin key must be provided."
   }
 }
+
+variable "serviceaccount_key" {
+  description = "key for generating service account JWTs"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.serviceaccount_key != ""
+    error_message = "service account key must be provided."
+  }
+}
+
+variable "aggregator_key" {
+  description = "key for Aggerator Proxy"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.aggregator_key != ""
+    error_message = "aggregator key must be provided."
+  }
+}
+
+variable "aggregator_crt" {
+  description = "Certificate for aggregator"
+  type        = string
+  default     = ""
+
+  validation {
+    condition     = var.aggregator_crt != ""
+    error_message = "certificate must be provided."
+  }
+}
+
 variable "allow_master_scheduling" {
   description = "Allows running workload on master nodes."
   type        = string
