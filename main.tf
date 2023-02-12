@@ -1,14 +1,22 @@
+resource "random_id" "cluster_id" {
+  keepers = {
+    ami_id = var.kube_cluster_name
+  }
+
+  byte_length = 32
+}
+
 locals {
-  scripts_dir = "${path.module}/scripts"
+  scripts_dir   = "${path.module}/scripts"
   talos_ovf_url = "https://github.com/talos-systems/talos/releases/download/${var.talos_version}/vmware-amd64.ova"
   # Iterate through the different node types and combine to a single node value
   worker_specs = [
     for i in range(var.worker_nodes) : {
       ip_address = "${var.ip_address_base}.${var.worker_ip_address_start + i}"
-      name = "${var.worker_name_prefix}-${i + 1}"
-      cpus = var.worker_cpu
-      memory = var.worker_memory
-      disk_size = var.worker_disk_size
+      name       = "${var.worker_name_prefix}-${i + 1}"
+      cpus       = var.worker_cpu
+      memory     = var.worker_memory
+      disk_size  = var.worker_disk_size
       config = base64encode(templatefile("${path.module}/talosnode.tpl", {
         type                        = "join"
         talos_token                 = var.talos_token
@@ -24,6 +32,7 @@ locals {
         tf_node_fqdn                = "${var.worker_name_prefix}-${i + 1}.${var.dns_domain}"
         add_extra_node_disk         = var.add_extra_node_disk
         kube_cluster_name           = var.kube_cluster_name
+        kube_cluster_id             = random_id.cluster_id.b64_std
         tf_talos_version            = var.talos_version
         cluster_endpoint            = var.talos_cluster_endpoint
         talos_cluster_endpoint_port = var.talos_cluster_endpoint_port
@@ -34,6 +43,9 @@ locals {
         kube_key                    = var.kube_key
         etcd_crt                    = var.etcd_crt
         etcd_key                    = var.etcd_key
+        aggregator_crt              = var.aggregator_crt
+        aggregator_key              = var.aggregator_key
+        serviceaccount_key          = var.serviceaccount_key
         tf_allow_master_scheduling  = var.allow_master_scheduling
         custom_cni                  = var.custom_cni
         cni_urls                    = var.cni_urls
@@ -43,12 +55,12 @@ locals {
   controlplane_specs = [
     for i in range(var.controlplane_nodes) : {
       ip_address = "${var.ip_address_base}.${var.controlplane_ip_address_start + i}"
-      name = "${var.controlplane_name_prefix}-${i + 1}"
-      type = i == 0 ? "init" : "controlplane"
-      cpus = var.controlplane_cpu
-      memory = var.controlplane_memory
-      disk_size = var.controlplane_disk_size
-      config = base64encode(templatefile("${path.module}/talosnode.tpl", {
+      name       = "${var.controlplane_name_prefix}-${i + 1}"
+      type       = i == 0 ? "init" : "controlplane"
+      cpus       = var.controlplane_cpu
+      memory     = var.controlplane_memory
+      disk_size  = var.controlplane_disk_size
+      config = sensitive(base64encode(templatefile("${path.module}/talosnode.tpl", {
         type                        = i == 0 ? "init" : "controlplane"
         talos_token                 = var.talos_token
         talos_crt                   = var.talos_crt
@@ -63,6 +75,7 @@ locals {
         tf_node_fqdn                = "${var.controlplane_name_prefix}-${i + 1}.${var.dns_domain}"
         add_extra_node_disk         = var.add_extra_node_disk
         kube_cluster_name           = var.kube_cluster_name
+        kube_cluster_id             = random_id.cluster_id.b64_std
         tf_talos_version            = var.talos_version
         cluster_endpoint            = var.talos_cluster_endpoint
         talos_cluster_endpoint_port = var.talos_cluster_endpoint_port
@@ -73,10 +86,13 @@ locals {
         kube_key                    = var.kube_key
         etcd_crt                    = var.etcd_crt
         etcd_key                    = var.etcd_key
+        aggregator_crt              = var.aggregator_crt
+        aggregator_key              = var.aggregator_key
+        serviceaccount_key          = var.serviceaccount_key
         tf_allow_master_scheduling  = var.allow_master_scheduling
         custom_cni                  = var.custom_cni
         cni_urls                    = var.cni_urls
-      }))
+      })))
     }
   ]
   node_specs = concat(local.worker_specs, local.controlplane_specs)
@@ -87,10 +103,10 @@ locals {
 data "vsphere_datacenter" "datacenter" {
   name = var.vsphere_datacenter
 }
-data "vsphere_compute_cluster" "cluster" {
-  name          = var.vsphere_cluster
-  datacenter_id = data.vsphere_datacenter.datacenter.id
-}
+# data "vsphere_compute_cluster" "cluster" {
+#   name          = var.vsphere_cluster
+#   datacenter_id = data.vsphere_datacenter.datacenter.id
+# }
 data "vsphere_resource_pool" "resource_pool" {
   name          = var.vsphere_resource_pool
   datacenter_id = data.vsphere_datacenter.datacenter.id
@@ -117,9 +133,9 @@ resource "local_file" "talosconfig" {
     tf_endpoints           = var.talos_cluster_endpoint
     nodes                  = local.controlplane_specs[0].ip_address
     # tf_endpoints           = local.controlplane_specs[0].ip_address
-    tf_talos_ca_crt        = var.talos_crt
-    tf_talos_admin_crt     = var.admin_crt
-    tf_talos_admin_key     = var.admin_key
+    tf_talos_ca_crt    = var.talos_crt
+    tf_talos_admin_crt = var.admin_crt
+    tf_talos_admin_key = var.admin_key
   })
   filename = "${abspath(var.talos_config_path)}/talosconfig"
 }
@@ -135,16 +151,16 @@ resource "vsphere_virtual_machine" "controlplane" {
   datastore_id               = data.vsphere_datastore.datastore.id
   datacenter_id              = data.vsphere_datacenter.datacenter.id
   wait_for_guest_net_timeout = -1 # don't wait for guest since talos doesn't have vmtools
-  num_cpus = local.controlplane_specs[count.index].cpus
-  memory   = local.controlplane_specs[count.index].memory
+  num_cpus                   = local.controlplane_specs[count.index].cpus
+  memory                     = local.controlplane_specs[count.index].memory
   ovf_deploy {
     remote_ovf_url = local.talos_ovf_url
   }
 
   # Disk
   disk {
-    name = var.ova_disk_name
-    size = local.controlplane_specs[count.index].disk_size
+    label = var.ova_disk_name
+    size  = local.controlplane_specs[count.index].disk_size
   }
 
   # Additional disk
@@ -152,9 +168,9 @@ resource "vsphere_virtual_machine" "controlplane" {
     for_each = var.node_extra_disk
 
     content {
-      label = "extra_disk_${disk.key + 1}.vmdk"
-      size = disk.value.size
-      unit_number = (disk.key + 1)
+      label            = "extra_disk_${disk.key + 1}.vmdk"
+      size             = disk.value.size
+      unit_number      = (disk.key + 1)
       thin_provisioned = true
     }
   }
@@ -191,16 +207,16 @@ resource "vsphere_virtual_machine" "worker" {
   datastore_id               = data.vsphere_datastore.datastore.id
   datacenter_id              = data.vsphere_datacenter.datacenter.id
   wait_for_guest_net_timeout = -1 # don't wait for guest since talos doesn't have vmtools
-  num_cpus = local.worker_specs[count.index].cpus
-  memory   = local.worker_specs[count.index].memory
+  num_cpus                   = local.worker_specs[count.index].cpus
+  memory                     = local.worker_specs[count.index].memory
   ovf_deploy {
     remote_ovf_url = local.talos_ovf_url
   }
 
   # Disk
   disk {
-    name = var.ova_disk_name
-    size = local.worker_specs[count.index].disk_size
+    label = var.ova_disk_name
+    size  = local.worker_specs[count.index].disk_size
   }
 
   # Additional disk
@@ -208,9 +224,9 @@ resource "vsphere_virtual_machine" "worker" {
     for_each = var.node_extra_disk
 
     content {
-      label = "extra_disk_${disk.key + 1}.vmdk"
-      size = disk.value.size
-      unit_number = (disk.key + 1)
+      label            = "extra_disk_${disk.key + 1}.vmdk"
+      size             = disk.value.size
+      unit_number      = (disk.key + 1)
       thin_provisioned = true
     }
   }

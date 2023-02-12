@@ -12,22 +12,15 @@ machine:
         key: ${talos_key}
 %{ endif ~}
     # Used to provide additional options to the kubelet.
-    kubelet: {}
-    # # The `image` field is an optional reference to an alternative kubelet image.
-    # image: ghcr.io/talos-systems/kubelet:v1.20.1
+    kubelet:
+        image: ghcr.io/siderolabs/kubelet:v1.26.1 # The `image` field is an optional reference to an alternative kubelet image.
+        defaultRuntimeSeccompProfileEnabled: true # Enable container runtime default Seccomp profile.
+        disableManifestsDirectory: true # The `disableManifestsDirectory` field configures the kubelet to get static pod manifests from the /etc/kubernetes/manifests directory.
 
-    # # The `extraArgs` field is used to provide additional flags to the kubelet.
-    # extraArgs:
-    #     key: value
-
-    # # The `extraMounts` field is used to add additional mounts to the kubelet container.
-    # extraMounts:
-    #     - destination: /var/lib/example
-    #       type: bind
-    #       source: /var/lib/example
-    #       options:
-    #         - rshared
-    #         - rw
+    features:
+      rbac: true # Enable role-based access control (RBAC).
+      stableHostname: true # Enable stable default hostname.
+      apidCheckExtKeyUsage: true # Enable checks for extended key usage of client certificates in apid.
 
     # Provides machine specific network configuration options.
 %{if customize_network ~}
@@ -40,8 +33,9 @@ machine:
         - network: 0.0.0.0/0
           gateway: ${ip_gateway}
         mtu: 1500
-
         dhcp: false
+        vip:
+          ip: 10.150.9.200 
 
       nameservers:
 %{for ns in nameservers ~}
@@ -50,61 +44,14 @@ machine:
 %{else ~}
     network: {}
 %{endif ~}
-    # # `interfaces` is used to define the network interface configuration.
-    # interfaces:
-    #     - interface: eth0 # The interface name.
-    #       cidr: 192.168.2.0/24 # Assigns a static IP address to the interface.
-    #       # A list of routes associated with the interface.
-    #       routes:
-    #         - network: 0.0.0.0/0 # The route's network.
-    #           gateway: 192.168.2.1 # The route's gateway.
-    #           metric: 1024 # The optional metric for the route.
-    #       mtu: 1500 # The interface's MTU.
-    #
-    #       # # Bond specific options.
-    #       # bond:
-    #       #     # The interfaces that make up the bond.
-    #       #     interfaces:
-    #       #         - eth0
-    #       #         - eth1
-    #       #     mode: 802.3ad # A bond option.
-    #       #     lacpRate: fast # A bond option.
-
-    #       # # Indicates if DHCP should be used to configure the interface.
-    #       # dhcp: true
-
-    #       # # DHCP specific options.
-    #       # dhcpOptions:
-    #       #     routeMetric: 1024 # The priority of all routes received via DHCP.
-
-    # # Used to statically set the nameservers for the machine.
-    # nameservers:
-    #     - 8.8.8.8
-    #     - 1.1.1.1
-
-    # # Allows for extra entries to be added to the `/etc/hosts` file
-    # extraHostEntries:
-    #     - ip: 192.168.1.100 # The IP of the host.
-    #       # The host alias.
-    #       aliases:
-    #         - example
-    #         - example.domain.tld
 
     # Used to provide instructions for installations.
     install:
-        disk: /dev/sda # The disk used for installations.
-        image: ghcr.io/talos-systems/installer:${tf_talos_version} # Allows for supplying the image used to perform the installation.
-        bootloader: true # Indicates if a bootloader should be installed.
-        wipe: false # Indicates if the installation disk should be wiped at installation time.
+      disk: /dev/sda # The disk used for installations.
+      image: ghcr.io/talos-systems/installer:${tf_talos_version} # Allows for supplying the image used to perform the installation.
+      bootloader: true # Indicates if a bootloader should be installed.
+      wipe: false # Indicates if the installation disk should be wiped at installation time.
 
-        # # Allows for supplying extra kernel args via the bootloader.
-        # extraKernelArgs:
-        #     - talos.platform=metal
-        #     - reboot=k
-
-    # # Extra certificate subject alternative names for the machine's certificate.
-
-    # # Uncomment this to enable SANs.
     certSANs:
 %{if customize_network ~}
       - ${node_ip_address}
@@ -122,90 +69,16 @@ machine:
         partitions:
           - mountpoint: /var/mnt/extra
 %{ else ~}
-    # disks:
-    #     - device: /dev/sdb # The name of the disk to use.
-    #       # A list of partitions to create on the disk.
-    #       partitions:
-    #         - mountpoint: /var/mnt/extra # Where to mount the partition.
-    #
-    #           # # This size of partition: either bytes or human readable representation.
 
-    #           # # Human readable representation.
-    #           # size: 100 MB
-    #           # # Precise value in bytes.
-    #           # size: 1073741824
 %{ endif ~}
 
-    # # Allows the addition of user specified files.
-
-    # # MachineFiles usage example.
-    # files:
-    #     - content: '...' # The contents of the file.
-    #       permissions: 0o666 # The file's permissions in octal.
-    #       path: /tmp/file.txt # The path of the file.
-    #       op: append # The operation to use
-
-    # # The `env` field allows for the addition of environment variables.
-
-    # # Environment variables definition examples.
-    # env:
-    #     GRPC_GO_LOG_SEVERITY_LEVEL: info
-    #     GRPC_GO_LOG_VERBOSITY_LEVEL: "99"
-    #     https_proxy: http://SERVER:PORT/
-    # env:
-    #     GRPC_GO_LOG_SEVERITY_LEVEL: error
-    #     https_proxy: https://USERNAME:PASSWORD@SERVER:PORT/
-    # env:
-    #     https_proxy: http://DOMAIN\USERNAME:PASSWORD@SERVER:PORT/
-
-    # # Used to configure the machine's time settings.
-
-    # # Example configuration for cloudflare ntp server.
-    # time:
-    #     disabled: false # Indicates if the time service is disabled for the machine.
-    #     # Specifies time (NTP) servers to use for setting the system time.
-    #     servers:
-    #         - time.cloudflare.com
-
-    # # Used to configure the machine's sysctls.
-
-    # # MachineSysctls usage example.
-    # sysctls:
-    #     kernel.domainname: talos.dev
-    #     net.ipv4.ip_forward: "0"
-
-    # # Used to configure the machine's container image registry mirrors.
-    # registries:
-    #     # Specifies mirror configuration for each registry.
-    #     mirrors:
-    #         ghcr.io:
-    #             # List of endpoints (URLs) for registry mirrors to use.
-    #             endpoints:
-    #                 - https://registry.insecure
-    #                 - https://ghcr.io/v2/
-    #     # Specifies TLS & auth configuration for HTTPS image registries.
-    #     config:
-    #         registry.insecure:
-    #             # The TLS configuration for the registry.
-    #             tls:
-    #                 insecureSkipVerify: true # Skip TLS server certificate verification (not recommended).
-    #
-    #                 # # Enable mutual TLS authentication with the registry.
-    #                 # clientIdentity:
-    #                 #     crt: TFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVSklla05DTUhGLi4u
-    #                 #     key: TFMwdExTMUNSVWRKVGlCRlJESTFOVEU1SUZCU1NWWkJWRVVnUzBWWkxTMHRMUzBLVFVNLi4u
-    #
-    #             # # The auth configuration for this registry.
-    #             # auth:
-    #             #     username: username # Optional registry authentication.
-    #             #     password: password # Optional registry authentication.
-# Provides cluster specific configuration options.
 cluster:
     # Provides control plane specific configuration options.
     controlPlane:
         endpoint: https://${cluster_endpoint}:${talos_cluster_endpoint_port} # Endpoint is the canonical controlplane endpoint, which can be an IP address or a DNS hostname.
 %{ if type != "worker" ~}
     clusterName: ${kube_cluster_name} # Configures the cluster's name.
+    id: ${kube_cluster_id} # Globally unique identifier for this cluster
 %{ endif ~}
     # Provides cluster specific network configuration options.
     network:
@@ -220,17 +93,12 @@ cluster:
         # The CNI used.
 %{if type == "init" && custom_cni ~}
         cni:
-          name: custom
+          name: none
           urls:
 %{ for url in cni_urls ~}
               - ${url}
 %{ endfor ~}
 %{ else ~}
-        # cni:
-        #     name: custom # Name of CNI to use.
-        #     # URLs containing manifests to apply for the CNI.
-        #     urls:
-        #         - https://raw.githubusercontent.com/cilium/cilium/v1.8/install/kubernetes/quick-install.yaml
 %{ endif ~}
     token: ${kube_token} # The [bootstrap token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) used to join the cluster.
 %{ if type != "worker" ~}
@@ -245,57 +113,79 @@ cluster:
       key: ""
 %{ endif ~}
 %{ if type != "worker" ~}
+    aggregatorCA:
+        crt: ${aggregator_crt}
+        key: ${aggregator_key}
+    serviceAccount:
+        key: ${serviceaccount_key}    
     # API server specific configuration options.
     apiServer:
+      image: registry.k8s.io/kube-apiserver:v1.26.1
         # Extra certificate subject alternative names for the API server's certificate.
       certSANs:
-      - ${cluster_endpoint}
-      - ${hostname}
+        - ${cluster_endpoint}
+        - ${hostname}
 
-        # # The container image used in the API server manifest.
-        # image: k8s.gcr.io/kube-apiserver-amd64:v1.20.1
+      disablePodSecurityPolicy: true # Disable PodSecurityPolicy in the API server and default manifests.
+      # Configure the API server admission plugins.
+      admissionControl:
+          - name: PodSecurity # Name is the name of the admission controller.
+              # Configuration is an embedded configuration object to be used as the plugin's
+            configuration:
+              apiVersion: pod-security.admission.config.k8s.io/v1alpha1
+              defaults:
+                audit: restricted
+                audit-version: latest
+                enforce: baseline
+                enforce-version: latest
+                warn: restricted
+                warn-version: latest
+              exemptions:
+                namespaces:
+                  - kube-system
+                runtimeClasses: []
+                usernames: []
+              kind: PodSecurityConfiguration
+      # Configure the API server audit policy.
+      auditPolicy:
+        apiVersion: audit.k8s.io/v1
+        kind: Policy
+        rules:
+          - level: Metadata
     # Controller manager server specific configuration options.
-    controllerManager: {}
-    # # The container image used in the controller manager manifest.
-    # image: k8s.gcr.io/kube-controller-manager-amd64:v1.20.1
-
+    controllerManager:
+      image: registry.k8s.io/kube-controller-manager:v1.26.1 # The container image used in the controller manager manifest.
     # Kube-proxy server-specific configuration options
-    proxy: {}
-    # # The container image used in the kube-proxy manifest.
-    # image: k8s.gcr.io/kube-proxy-amd64:v1.20.1
-
-    # Scheduler server specific configuration options.
-    scheduler: {}
-    # # The container image used in the scheduler manifest.
-    # image: k8s.gcr.io/kube-scheduler-amd64:v1.20.1
+    proxy:
+      image: registry.k8s.io/kube-proxy:v1.26.1 # The container image used in the kube-proxy manifest.
+      # # Disable kube-proxy deployment on cluster bootstrap.
+      # disabled: false
+  # Scheduler server specific configuration options.
+    scheduler:
+        image: registry.k8s.io/kube-scheduler:v1.26.1 
 
     # Etcd specific configuration options.
     etcd:
-      # The `ca` is the root certificate authority of the PKI.
       ca:
         crt: ${etcd_crt}
         key: ${etcd_key}
 
-        # # The container image used to create the etcd service.
-        # image: gcr.io/etcd-development/etcd:v3.4.14
 %{ endif }
-    # # Pod Checkpointer specific configuration options.
-    # podCheckpointer:
-    #     image: '...' # The `image` field is an override to the default pod-checkpointer image.
-
     # # Core DNS specific configuration options.
     # coreDNS:
     #     image: k8s.gcr.io/coredns:1.7.0 # The `image` field is an override to the default coredns image.
 
-    # # A list of urls that point to additional manifests.
-    # extraManifests:
-    #     - https://www.example.com/manifest1.yaml
-    #     - https://www.example.com/manifest2.yaml
+    # # External cloud provider configuration.
+    # externalCloudProvider:
+    #     enabled: true # Enable external cloud provider.
+    #     # A list of urls that point to additional manifests for an external cloud provider.
+    #     manifests:
+    #         - https://raw.githubusercontent.com/kubernetes/cloud-provider-aws/v1.20.0-alpha.0/manifests/rbac.yaml
+    #         - https://raw.githubusercontent.com/kubernetes/cloud-provider-aws/v1.20.0-alpha.0/manifests/aws-cloud-controller-manager-daemonset.yaml
 
-    # # A map of key value pairs that will be added while fetching the ExtraManifests.
-    # extraManifestHeaders:
-    #     Token: "1234567"
-    #     X-ExtraInfo: info
+    # # A list of urls that point to additional manifests.
+    extraManifests:
+      - https://github.com/mologie/talos-vmtoolsd/releases/download/0.3.1/talos-vmtoolsd-0.3.1.yaml
 
     # # Settings for admin kubeconfig generation.
     # adminKubeconfig:

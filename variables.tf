@@ -11,7 +11,7 @@ variable "vsphere_datacenter" {
 variable "vsphere_resource_pool" {
   description = "VM Resource Pool"
   type        = string
-  default = ""
+  default     = ""
 
   validation {
     condition     = var.vsphere_resource_pool != ""
@@ -21,7 +21,7 @@ variable "vsphere_resource_pool" {
 variable "vsphere_host" {
   description = "The host to deploy to"
   type        = string
-  default = ""
+  default     = ""
 
   validation {
     condition     = var.vsphere_host != ""
@@ -31,7 +31,7 @@ variable "vsphere_host" {
 variable "vsphere_cluster" {
   description = "In which cluster the VM will be deployed"
   type        = string
-  default = ""
+  default     = ""
 
   validation {
     condition     = var.vsphere_cluster != ""
@@ -41,7 +41,7 @@ variable "vsphere_cluster" {
 variable "vsphere_datastore" {
   description = "What is the name of the destination VM datastore"
   type        = string
-  default = ""
+  default     = ""
 
   validation {
     condition     = var.vsphere_datastore != ""
@@ -51,7 +51,7 @@ variable "vsphere_datastore" {
 variable "vsphere_network" {
   description = "What is the name of the VM Network?"
   type        = string
-  default = ""
+  default     = ""
 
   validation {
     condition     = var.vsphere_network != ""
@@ -72,18 +72,18 @@ variable "talos_version" {
 }
 variable "talos_cluster_endpoint" {
   description = "The DNS or load balancer IP endpoint name IE talos.yourdomain.local"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.talos_cluster_endpoint != ""
+    condition     = var.talos_cluster_endpoint != ""
     error_message = "You must provide an endpoint DNS name or IP."
   }
 }
 variable "talos_cluster_endpoint_port" {
   description = "The port for the cluster endpoint.  Usually 6443 or 443 (behind loadbalancer)."
-  type = string
-  default = "6443"
+  type        = string
+  default     = "6443"
 
   validation {
     condition     = var.talos_cluster_endpoint_port != ""
@@ -92,11 +92,11 @@ variable "talos_cluster_endpoint_port" {
 }
 variable "talos_cluster_name" {
   description = "The talosconfig cluster name used for context"
-  type = string
-  default = "talos"
+  type        = string
+  default     = "talos"
 
   validation {
-    condition = var.talos_cluster_name != ""
+    condition     = var.talos_cluster_name != ""
     error_message = "The talos_cluster_name cannot be blank."
   }
 }
@@ -130,7 +130,7 @@ variable "ova_disk_name" {
   default     = "disk-1000-0.vmdk"
 
   validation {
-    condition = var.ova_disk_name != ""
+    condition     = var.ova_disk_name != ""
     error_message = "You must provide a disk name for the ova disk."
   }
 }
@@ -204,15 +204,15 @@ variable "worker_disk_size" {
 variable "node_extra_disk" {
   description = "Extra disk information"
   type = list(object({
-    size = number
+    size       = number
     mountpoint = string
   }))
   default = []
 }
 variable "add_extra_node_disk" {
   description = "Whether or not to add an additional disk."
-  type = bool
-  default = false
+  type        = bool
+  default     = false
 }
 
 # Networking
@@ -231,7 +231,7 @@ variable "ip_gateway" {
   type        = string
 
   validation {
-    condition = var.ip_gateway != ""
+    condition     = var.ip_gateway != ""
     error_message = "Must define network gateway."
   }
 }
@@ -256,7 +256,7 @@ variable "ip_address_base" {
   type        = string
 
   validation {
-    condition = var.ip_address_base != ""
+    condition     = var.ip_address_base != ""
     error_message = "Must provide base network."
   }
 }
@@ -266,7 +266,7 @@ variable "ip_netmask" {
   default     = "/24"
 
   validation {
-    condition = var.ip_netmask != ""
+    condition     = var.ip_netmask != ""
     error_message = "You must provide an ip_netmask."
   }
 }
@@ -276,7 +276,7 @@ variable "controlplane_ip_address_start" {
   default     = ""
 
   validation {
-    condition = var.controlplane_ip_address_start != ""
+    condition     = var.controlplane_ip_address_start != ""
     error_message = "You must provide a starting IP address for the controlplane nodes."
   }
 }
@@ -286,7 +286,7 @@ variable "worker_ip_address_start" {
   default     = ""
 
   validation {
-    condition = var.worker_ip_address_start != ""
+    condition     = var.worker_ip_address_start != ""
     error_message = "You must provide a starting IP address for the worker nodes."
   }
 }
@@ -302,121 +302,121 @@ variable "talos_config_path" {
       Full path: /home/user/talosconfig
       Relative path: ./config/talosconfig or ./talosconfig
     EOT
-    type      = string
-    default   = "./"
+  type        = string
+  default     = "./"
 
-    validation {
-      condition   = var.talos_config_path != ""
-      error_message = "Talos config file path must be provided."
-    }
+  validation {
+    condition     = var.talos_config_path != ""
+    error_message = "Talos config file path must be provided."
+  }
 }
 variable "talos_crt" {
   description = "talos ca cert"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.talos_crt != ""
+    condition     = var.talos_crt != ""
     error_message = "Talos crt must be provided."
   }
 }
 variable "talos_key" {
   description = "talos ca key"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.talos_key != ""
+    condition     = var.talos_key != ""
     error_message = "Talos key must be provided."
   }
 }
 variable "talos_token" {
   description = "Token used to join a system to the cluster"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.talos_token != ""
+    condition     = var.talos_token != ""
     error_message = "Talos token must be provided."
   }
 }
 variable "kube_enc_key" {
   description = "The key used for the encryption of secret data at rest"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.kube_enc_key != ""
+    condition     = var.kube_enc_key != ""
     error_message = "Thekube_enc_key must be provided."
   }
 }
 variable "kube_token" {
   description = "The [bootstrap token](https://kubernetes.io/docs/reference/access-authn-authz/bootstrap-tokens/) used to join the cluster."
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.kube_token != ""
+    condition     = var.kube_token != ""
     error_message = "Kube token must be provided."
   }
 }
 variable "kube_crt" {
   description = "The base64 encoded root certificate authority cert used by Kubernetes."
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.kube_crt != ""
+    condition     = var.kube_crt != ""
     error_message = "Kube crt must be provided."
   }
 }
 variable "kube_key" {
   description = "The base64 encoded root certificate authority key used by Kubernetes."
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.kube_key != ""
+    condition     = var.kube_key != ""
     error_message = "Kube key must be provided."
   }
 }
 variable "etcd_crt" {
   description = "The `ca` is the root certificate authority of the PKI."
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.etcd_crt != ""
+    condition     = var.etcd_crt != ""
     error_message = "ETCD crt must be provided."
   }
 }
 variable "etcd_key" {
   description = "The `ca` is the root certificate authority of the PKI."
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.etcd_key != ""
+    condition     = var.etcd_key != ""
     error_message = "ETCD key must be provided."
   }
 }
 variable "admin_crt" {
   description = "the admin crt for conecting to k8"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.admin_crt != ""
+    condition     = var.admin_crt != ""
     error_message = "Talos crt must be provided."
   }
 }
 variable "admin_key" {
   description = "the admin key for connecting to k8"
-  type = string
-  default = ""
+  type        = string
+  default     = ""
 
   validation {
-    condition = var.admin_key != ""
+    condition     = var.admin_key != ""
     error_message = "Admin key must be provided."
   }
 }
