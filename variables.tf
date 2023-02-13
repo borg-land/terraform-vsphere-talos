@@ -324,6 +324,7 @@ variable "talos_key" {
   description = "talos ca key"
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.talos_key != ""

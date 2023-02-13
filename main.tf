@@ -18,7 +18,7 @@ locals {
       memory     = var.worker_memory
       disk_size  = var.worker_disk_size
       config = base64encode(templatefile("${path.module}/talosnode.tpl", {
-        type                        = "join"
+        type                        = "worker"
         talos_token                 = var.talos_token
         talos_crt                   = var.talos_crt
         talos_key                   = var.talos_key
@@ -131,7 +131,7 @@ resource "local_file" "talosconfig" {
     talos_cluster_endpoint = var.talos_cluster_endpoint
     talos_cluster_name     = var.talos_cluster_name
     tf_endpoints           = var.talos_cluster_endpoint
-    nodes                  = local.controlplane_specs[0].ip_address
+    nodes                  = concat(tolist(local.controlplane_specs[*].ip_address), tolist(local.worker_specs[*].ip_address))
     # tf_endpoints           = local.controlplane_specs[0].ip_address
     tf_talos_ca_crt    = var.talos_crt
     tf_talos_admin_crt = var.admin_crt

@@ -17,6 +17,12 @@ function gen_certs {
   # Generate the etcd CA certificate (RSA 4096)
   talosctl gen ca --rsa --hours 87600 --organization etcd
 
+  # Generate the serviceaccount key Certifcate (Ed25519)
+  talosctl gen ca --rsa --hours 87600 --organization aggregator
+
+  # Generate the serviceaccount key Certifcate (Ed25519)
+  talosctl gen ca --rsa --hours 87600 --organization serviceaccount
+
   # Generate the Talos admin certificate (Ed25519)
   talosctl gen key --name admin
   talosctl gen csr --ip "127.0.0.1" --key admin.key
@@ -47,6 +53,9 @@ function get_b64_strings {
     ETCD_KEY=$(base64 -i etcd.key)
     ADMIN_CRT=$(base64 -i admin.crt)
     ADMIN_KEY=$(base64 -i admin.key)
+    AGGREGATOR_CRT=$(base64 -i aggregator.crt)
+    AGGREGATOR_KEY=$(base64 -i aggregator.key)
+    SERVICEACCOUNT_KEY=$(base64 -i serviceaccount.key)
 	else # Host is Linux, as other platforms are not tested to be evaluated here
     TALOS_CRT=$(base64 -w 0 talos.crt)
     TALOS_KEY=$(base64 -w 0 talos.key)
@@ -56,6 +65,9 @@ function get_b64_strings {
     ETCD_KEY=$(base64 -w 0 etcd.key)
     ADMIN_CRT=$(base64 -w 0 admin.crt)
     ADMIN_KEY=$(base64 -w 0 admin.key)
+    AGGREGATOR_CRT=$(base64 -w 0 aggregator.crt)
+    AGGREGATOR_KEY=$(base64 -w 0 aggregator.key)
+    SERVICEACCOUNT_KEY=$(base64 -w 0 serviceaccount.key)
   fi
 
   # Delete certificate files
@@ -63,7 +75,9 @@ function get_b64_strings {
   kubernetes.crt kubernetes.key \
   etcd.crt etcd.key \
   admin.crt admin.key \
-  talos.sha256 etcd.sha256 admin.csr kubernetes.sha256
+  talos.sha256 etcd.sha256 admin.csr kubernetes.sha256 \
+  serviceaccount.key serviceaccount.crt serviceaccount.sha256 \
+  aggregator.crt aggregator.key aggregator.sha256
 }
 
 function write_tfvars {
@@ -80,6 +94,9 @@ function write_tfvars {
   talos_token = "${TALOS_TOKEN}"
   kube_token = "${KUBE_TOKEN}"
   kube_enc_key = "${KUBE_ENC_KEY}"
+  serviceaccount_key = "${SERVICEACCOUNT_KEY}"
+  aggregator_crt = "${AGGREGATOR_CRT}"
+  aggregator_key = "${AGGREGATOR_KEY}"
 EOF
 }
 

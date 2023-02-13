@@ -34,8 +34,10 @@ machine:
           gateway: ${ip_gateway}
         mtu: 1500
         dhcp: false
+%{ if type != "worker" ~}
         vip:
           ip: 10.150.9.200 
+%{ endif ~}
 
       nameservers:
 %{for ns in nameservers ~}
@@ -57,6 +59,7 @@ machine:
       - ${node_ip_address}
 %{ endif ~}
       - ${cluster_endpoint}
+      - talos.k8s.upo.one
     #     - 172.16.0.10
     #     - 192.168.0.10
 
@@ -91,7 +94,7 @@ cluster:
             - 10.96.0.0/12
 
         # The CNI used.
-%{if type == "init" && custom_cni ~}
+%{if type != "worker" && custom_cni ~}
         cni:
           name: none
           urls:
@@ -125,6 +128,7 @@ cluster:
       certSANs:
         - ${cluster_endpoint}
         - ${hostname}
+        - talos.k8s.upo.one
 
       disablePodSecurityPolicy: true # Disable PodSecurityPolicy in the API server and default manifests.
       # Configure the API server admission plugins.
