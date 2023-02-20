@@ -191,6 +191,21 @@ cluster:
     extraManifests:
       - https://github.com/mologie/talos-vmtoolsd/releases/download/0.3.1/talos-vmtoolsd-0.3.1.yaml
 
+    inlineManifests:
+      - name: oidc-wellknown # Name of the manifest.
+        contents: |- # Manifest contents as a string.
+          apiVersion: rbac.authorization.k8s.io/v1
+          kind: ClusterRoleBinding
+          metadata:
+            name: oidc-reviewer
+          subjects:
+          - kind: Group
+            name: system:unauthenticated
+            apiGroup: rbac.authorization.k8s.io
+          roleRef:
+            kind: ClusterRole
+            name: system:service-account-issuer-discovery
+            apiGroup: rbac.authorization.k8s.io
     # # Settings for admin kubeconfig generation.
     # adminKubeconfig:
     #     certLifetime: 1h0m0s # Admin kubeconfig certificate lifetime (default is 1 year).
