@@ -49,6 +49,12 @@ locals {
         tf_allow_master_scheduling  = var.allow_master_scheduling
         custom_cni                  = var.custom_cni
         cni_urls                    = var.cni_urls
+        pod_subnets                 = var.pod_subnets
+        service_subnets             = var.service_subnets
+        kubelet_config              = var.kubelet
+        api_server_args             = var.api_server_args
+        cert_sans                   = concat([var.talos_cluster_endpoint], var.cert_sans)
+        disable_kube_proxy          = var.disable_kube_proxy
       }))
     }
   ]
@@ -92,6 +98,12 @@ locals {
         tf_allow_master_scheduling  = var.allow_master_scheduling
         custom_cni                  = var.custom_cni
         cni_urls                    = var.cni_urls
+        kubelet_config              = var.kubelet
+        api_server_args             = var.api_server_args
+        pod_subnets                 = var.pod_subnets
+        service_subnets             = var.service_subnets
+        cert_sans                   = concat([var.talos_cluster_endpoint], var.cert_sans)
+        disable_kube_proxy          = var.disable_kube_proxy
       })))
     }
   ]
@@ -107,6 +119,7 @@ data "vsphere_datacenter" "datacenter" {
 #   name          = var.vsphere_cluster
 #   datacenter_id = data.vsphere_datacenter.datacenter.id
 # }
+
 data "vsphere_resource_pool" "resource_pool" {
   name          = var.vsphere_resource_pool
   datacenter_id = data.vsphere_datacenter.datacenter.id

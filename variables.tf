@@ -71,13 +71,13 @@ variable "talos_version" {
   }
 }
 variable "talos_cluster_endpoint" {
-  description = "The DNS or load balancer IP endpoint name IE talos.yourdomain.local"
+  description = "The virtual IP for the cluster."
   type        = string
   default     = ""
 
   validation {
-    condition     = var.talos_cluster_endpoint != ""
-    error_message = "You must provide an endpoint DNS name or IP."
+    condition     = can(cidrnetmask("${var.talos_cluster_endpoint}/32"))
+    error_message = "Must be a valid IPv4 address."
   }
 }
 variable "talos_cluster_endpoint_port" {
@@ -420,6 +420,7 @@ variable "admin_key" {
   description = "the admin key for connecting to k8"
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.admin_key != ""
@@ -431,6 +432,7 @@ variable "serviceaccount_key" {
   description = "key for generating service account JWTs"
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.serviceaccount_key != ""
@@ -442,6 +444,7 @@ variable "aggregator_key" {
   description = "key for Aggerator Proxy"
   type        = string
   default     = ""
+  sensitive   = true
 
   validation {
     condition     = var.aggregator_key != ""
@@ -476,4 +479,74 @@ variable "cni_urls" {
   description = "URLs for kube CNI settings"
   type        = list(string)
   default     = []
+}
+
+variable "cert_sans" {
+  description = "certificate SANs for kube-api-server and talos"
+  type        = list(string)
+  default     = []
+}
+
+
+variable "api_server_args" {
+  description = "Kubernetes API Server arguments"
+  type        = map(any)
+  default     = {}
+}
+
+variable "kubelet_args" {
+  description = "Kubelet Server arguments"
+  type        = map(any)
+  default     = {}
+}
+
+variable "pod_subnets" {
+  description = "Pod Subnet CIDR Ranges"
+  type        = list(string)
+  default = [
+    "10.244.0.0/16"
+  ]
+
+  validation {
+    condition = alltrue([
+      for range in var.pod_subnets : can(cidrnetmask(range))
+    ])
+    error_message = "IPs Must be CIDR Range"
+  }
+}
+
+variable "service_subnets" {
+  description = "Service Subnet CIDR Ranges"
+  type        = list(string)
+  default = [
+    "10.96.0.0/12"
+  ]
+
+  validation {
+    condition = alltrue([
+      for range in var.service_subnets : can(cidrnetmask(range))
+    ])
+    error_message = "IPs Must be CIDR Range"
+  }
+
+}
+
+variable "disable_kube_proxy" {
+  description = "Whether to disable kube-proxy. Must be used with Cilium's kubeproxy replacement"
+  type        = bool
+  default     = false
+}
+
+
+variable "kubelet" {
+  type = object({
+    extraArgs = optional(map(string))
+    extraMounts = optional(list(object({
+      destination = string
+      type        = string
+      source      = string
+      options     = list(string)
+    })))
+    extraConfig = optional(map(string))
+  })
 }

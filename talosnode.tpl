@@ -8,15 +8,40 @@ machine:
 %{ if type != "worker" ~}
     # The root certificate authority of the PKI.
     ca:
-        crt: ${talos_crt}
-        key: ${talos_key}
+      crt: ${talos_crt}
+      key: ${talos_key}
 %{ endif ~}
     # Used to provide additional options to the kubelet.
     kubelet:
-        image: ghcr.io/siderolabs/kubelet:v1.26.1 # The `image` field is an optional reference to an alternative kubelet image.
-        defaultRuntimeSeccompProfileEnabled: true # Enable container runtime default Seccomp profile.
-        disableManifestsDirectory: true # The `disableManifestsDirectory` field configures the kubelet to get static pod manifests from the /etc/kubernetes/manifests directory.
+      image: ghcr.io/siderolabs/kubelet:v1.26.1 # The `image` field is an optional reference to an alternative kubelet image.
+      defaultRuntimeSeccompProfileEnabled: true # Enable container runtime default Seccomp profile.
+      disableManifestsDirectory: true # The `disableManifestsDirectory` field configures the kubelet to get static pod manifests from the /etc/kubernetes/manifests directory.
+%{ if kubelet_config.extraArgs != null  ~}
+      extraArgs:
+        ${yamlencode(kubelet_config.extraArgs)}
+%{ endif ~}
+%{ if kubelet_config.extraConfig != null  ~}
+      extraConfig:
+        ${yamlencode(kubelet_config.extraConfig)}
+%{ endif ~}
+      extraMounts:      
+%{for entry in kubelet_config.extraMounts ~}
+        - destination: ${entry.destination}
+          type: ${entry.type}
+          source: ${entry.source}
+          options:
+%{for opt in entry.options ~}
+            - ${opt}
+%{endfor ~}       
+%{endfor ~}
 
+#     - destination: /var/lib/example
+#       type: bind
+#       source: /var/lib/example
+#       options:
+#         - bind
+#         - rshared
+#         - rw
     features:
       rbac: true # Enable role-based access control (RBAC).
       stableHostname: true # Enable stable default hostname.
@@ -30,13 +55,13 @@ machine:
       - interface: eth0
         cidr: ${node_ip_address}${ip_netmask}
         routes:
-        - network: 0.0.0.0/0
-          gateway: ${ip_gateway}
+          - network: 0.0.0.0/0
+            gateway: ${ip_gateway}
         mtu: 1500
         dhcp: false
 %{ if type != "worker" ~}
         vip:
-          ip: 10.150.9.200 
+          ip: ${cluster_endpoint} 
 %{ endif ~}
 
       nameservers:
@@ -53,15 +78,16 @@ machine:
       image: ghcr.io/talos-systems/installer:${tf_talos_version} # Allows for supplying the image used to perform the installation.
       bootloader: true # Indicates if a bootloader should be installed.
       wipe: false # Indicates if the installation disk should be wiped at installation time.
+      extensions:
+        - image: ghcr.io/siderolabs/iscsi-tools:v0.1.4
 
     certSANs:
 %{if customize_network ~}
       - ${node_ip_address}
 %{ endif ~}
-      - ${cluster_endpoint}
-      - talos.k8s.upo.one
-    #     - 172.16.0.10
-    #     - 192.168.0.10
+%{ for host in cert_sans ~}
+      - ${host}
+%{ endfor ~}
 
     # # Used to partition, format and mount additional disks.
 
@@ -88,10 +114,14 @@ cluster:
         dnsDomain: ${kube_dns_domain} # The domain used by Kubernetes DNS.
         # The pod subnet CIDR.
         podSubnets:
-            - 10.244.0.0/16
+%{ for subnet in pod_subnets ~}
+            - ${subnet}
+%{ endfor ~}
         # The service subnet CIDR.
         serviceSubnets:
-            - 10.96.0.0/12
+%{ for subnet in service_subnets ~}
+            - ${subnet}
+%{ endfor ~}
 
         # The CNI used.
 %{if type != "worker" && custom_cni ~}
@@ -126,23 +156,26 @@ cluster:
       image: registry.k8s.io/kube-apiserver:v1.26.1
         # Extra certificate subject alternative names for the API server's certificate.
       certSANs:
-        - ${cluster_endpoint}
         - ${hostname}
-        - talos.k8s.upo.one
+%{ for host in cert_sans ~}
+        - ${host}
+%{ endfor ~}
 
+      extraArgs:
+        ${yamlencode(api_server_args)}
       disablePodSecurityPolicy: true # Disable PodSecurityPolicy in the API server and default manifests.
       # Configure the API server admission plugins.
       admissionControl:
           - name: PodSecurity # Name is the name of the admission controller.
               # Configuration is an embedded configuration object to be used as the plugin's
             configuration:
-              apiVersion: pod-security.admission.config.k8s.io/v1alpha1
+              apiVersion: pod-security.admission.config.k8s.io/v1
               defaults:
                 audit: restricted
                 audit-version: latest
-                enforce: baseline
+                enforce: privileged
                 enforce-version: latest
-                warn: restricted
+                warn: privileged
                 warn-version: latest
               exemptions:
                 namespaces:
@@ -163,7 +196,7 @@ cluster:
     proxy:
       image: registry.k8s.io/kube-proxy:v1.26.1 # The container image used in the kube-proxy manifest.
       # # Disable kube-proxy deployment on cluster bootstrap.
-      # disabled: false
+      disabled: ${disable_kube_proxy}
   # Scheduler server specific configuration options.
     scheduler:
         image: registry.k8s.io/kube-scheduler:v1.26.1 
@@ -174,7 +207,6 @@ cluster:
         crt: ${etcd_crt}
         key: ${etcd_key}
 
-%{ endif }
     # # Core DNS specific configuration options.
     # coreDNS:
     #     image: k8s.gcr.io/coredns:1.7.0 # The `image` field is an override to the default coredns image.
@@ -190,22 +222,10 @@ cluster:
     # # A list of urls that point to additional manifests.
     extraManifests:
       - https://github.com/mologie/talos-vmtoolsd/releases/download/0.3.1/talos-vmtoolsd-0.3.1.yaml
+      - https://github.com/kubernetes-sigs/metrics-server/releases/download/v0.6.2/high-availability-1.21+.yaml
+      - https://raw.githubusercontent.com/alex1989hu/kubelet-serving-cert-approver/main/deploy/standalone-install.yaml
 
-    inlineManifests:
-      - name: oidc-wellknown # Name of the manifest.
-        contents: |- # Manifest contents as a string.
-          apiVersion: rbac.authorization.k8s.io/v1
-          kind: ClusterRoleBinding
-          metadata:
-            name: oidc-reviewer
-          subjects:
-          - kind: Group
-            name: system:unauthenticated
-            apiGroup: rbac.authorization.k8s.io
-          roleRef:
-            kind: ClusterRole
-            name: system:service-account-issuer-discovery
-            apiGroup: rbac.authorization.k8s.io
     # # Settings for admin kubeconfig generation.
     # adminKubeconfig:
     #     certLifetime: 1h0m0s # Admin kubeconfig certificate lifetime (default is 1 year).
+%{ endif }

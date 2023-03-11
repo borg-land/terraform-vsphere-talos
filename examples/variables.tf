@@ -1,0 +1,14 @@
+variable "talos_crt" {}
+variable "talos_key" {}
+variable "kube_crt" {}
+variable "kube_key" {}
+variable "etcd_crt" {}
+variable "etcd_key" {}
+variable "admin_crt" {}
+variable "admin_key" {}
+variable "talos_token" {}
+variable "kube_token" {}
+variable "kube_enc_key" {}
+variable "serviceaccount_key" {}
+variable "aggregator_crt" {}
+variable "aggregator_key" {}
